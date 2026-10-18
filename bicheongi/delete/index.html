@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>비천기 계정 삭제 안내</title>
 <style>
-  :root { --bg:#fbfaf7; --fg:#22211f; --muted:#6b6862; --line:#e3dfd6; --head:#f2efe8; --accent:#8a5a1c; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#171615; --fg:#e9e6df; --muted:#a29d93; --line:#34312c; --head:#23211e; --accent:#d9a65c; } }
+  :root { --bg:#fbfaf7; --fg:#22211f; --muted:#6b6862; --line:#e3dfd6; --head:#f2efe8; --accent:#8a5a1c; --danger:#b3261e; --danger-fg:#ffffff; --ok:#2e6b3a; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#171615; --fg:#e9e6df; --muted:#a29d93; --line:#34312c; --head:#23211e; --accent:#d9a65c; --danger:#e46a5f; --danger-fg:#1a0d0b; --ok:#7cc48a; } }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.7 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; }
   main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
@@ -20,15 +20,63 @@
   table { border-collapse: collapse; width: 100%; font-size: .93rem; }
   th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
   th { background: var(--head); white-space: nowrap; }
+  .card { border: 1px solid var(--line); background: var(--head); border-radius: 10px; padding: 18px 18px 14px; margin: 1em 0; }
+  .card p { margin: 0 0 .8em; }
+  .card .who { font-weight: 600; word-break: break-all; }
+  .card ul { margin: 0 0 .9em; }
+  button { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; min-height: 44px; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  button.danger { background: var(--danger); border-color: var(--danger); color: var(--danger-fg); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  label.confirm { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 .9em; }
+  label.confirm input { width: 20px; height: 20px; margin-top: 4px; flex: none; }
+  .status { margin: .8em 0 0; color: var(--muted); min-height: 1.7em; }
+  .status.error { color: var(--danger); }
+  .status.done { color: var(--ok); font-weight: 600; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
 <h1>비천기 계정 삭제 안내</h1>
 <p class="meta">운영자 김진수 · 문의 <a href="mailto:wow91820@gmail.com">wow91820@gmail.com</a></p>
-<p>비천기(운영자 김진수)의 Google 연동 계정과 클라우드 정보는 게임 안에서 바로 지우거나, 앱이 없으면 이메일로 삭제를 요청할 수 있습니다.</p>
+<p>비천기(운영자 김진수)의 Google 연동 계정과 클라우드 정보는 이 페이지에서 Google 로그인으로 바로 지우거나, 게임 안에서 지우거나, 이메일로 삭제를 요청할 수 있습니다.</p>
 
-<h2>1. 게임 안에서 삭제하기 (바로 처리)</h2>
+<h2>1. 이 페이지에서 바로 삭제하기 (Google 로그인)</h2>
+<p>게임에 연동한 Google 계정으로 로그인하면 그 자리에서 바로 지워집니다. 휴대폰이나 앱이 없어도 됩니다.</p>
+<ul>
+  <li>삭제하는 동안에는 그 계정으로 게임을 켜 두지 마세요.</li>
+  <li>삭제한 뒤 그 계정을 쓰던 휴대폰은 다음에 게임을 켤 때 세이브를 휴대폰 안에 보관하고 처음부터 시작합니다. 휴대폰에 남은 세이브까지 지우려면 앱을 삭제해 주세요.</li>
+</ul>
+
+<div class="card" id="web-delete">
+  <noscript><p>이 기능은 JavaScript가 켜져 있어야 합니다. 3번 이메일 요청을 이용해 주세요.</p></noscript>
+
+  <div id="step-signin">
+    <p>먼저 게임에 연동한 Google 계정으로 로그인합니다. 로그인 창이 새 창이나 새 탭으로 열립니다.</p>
+    <div class="row"><button class="primary" id="btn-signin" type="button">Google로 로그인</button></div>
+  </div>
+
+  <div id="step-confirm" hidden>
+    <p>로그인한 계정: <span class="who" id="who"></span></p>
+    <p>삭제되는 것:</p>
+    <ul id="what"></ul>
+    <label class="confirm"><input type="checkbox" id="chk-sure"> <span>삭제한 계정과 게임 진행은 되살릴 수 없다는 것을 이해했습니다.</span></label>
+    <div class="row">
+      <button class="danger" id="btn-delete" type="button" disabled>계정 삭제</button>
+      <button id="btn-other" type="button">다른 계정으로 로그인</button>
+    </div>
+  </div>
+
+  <div id="step-done" hidden>
+    <p class="status done" id="done-text">계정을 삭제했습니다. 클라우드 세이브, 기기 기록, 보스 처치 기록, Google 계정 연동이 모두 지워졌습니다.</p>
+  </div>
+
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</div>
+
+<h2>2. 게임 안에서 삭제하기 (바로 처리)</h2>
 <p>인터넷에 연결된 상태에서, 그 계정으로 마지막에 플레이한 휴대폰으로 진행해 주세요.</p>
 <ol>
   <li>게임을 켜고 캐릭터로 들어갑니다.</li>
@@ -43,10 +91,10 @@
   <li>지워지는 것과 남는 것을 확인하고, 빨간 버튼을 <strong>3초 동안 눌러</strong> 삭제를 시작합니다.</li>
   <li>Google 계정 선택 창이 뜨면 <strong>같은 Google 계정</strong>을 고릅니다. 확인되면 바로 삭제됩니다.</li>
 </ol>
-<p>다른 휴대폰이 세이브를 가져간 뒤에는 그 휴대폰에서만 삭제할 수 있습니다. 이때는 메뉴 › 계정에서 세이브를 받은 뒤 다시 시도하거나, 2번 방법으로 요청해 주세요.</p>
+<p>다른 휴대폰이 세이브를 가져간 뒤에는 그 휴대폰에서만 게임 안 삭제를 할 수 있습니다. 이때는 1번 방법으로 이 페이지에서 바로 지울 수 있습니다.</p>
 
-<h2>2. 앱 없이 이메일로 요청하기 (10일 안에 처리)</h2>
-<p>휴대폰을 잃어버렸거나 앱을 이미 지운 경우에는 이메일로 요청할 수 있습니다.</p>
+<h2>3. 이메일로 요청하기 (10일 안에 처리)</h2>
+<p>Google 계정에 로그인할 수 없는 등 위 방법을 쓸 수 없으면 이메일로 요청할 수 있습니다.</p>
 <ol>
   <li><strong>게임에 연동한 Google 계정의 메일 주소에서</strong> <a href="mailto:wow91820@gmail.com?subject=비천기 계정 삭제 요청">wow91820@gmail.com</a>으로 보냅니다. 본인 확인을 위해 다른 주소에서 온 요청은 처리하지 않습니다.</li>
   <li>제목: <strong>비천기 계정 삭제 요청</strong></li>
@@ -54,20 +102,20 @@
   <li>운영자가 확인한 뒤 10일 안에 삭제하고, 같은 메일로 결과를 알려 드립니다.</li>
 </ol>
 
-<h2>3. 지워지는 정보와 남는 정보</h2>
+<h2>4. 지워지는 정보와 남는 정보</h2>
 <p>계정을 삭제하면 운영자가 가진 계정 정보는 모두 바로 지워지며, 따로 보관하는 사본은 없습니다.</p>
 <div class="table"><table>
   <tr><th>정보</th><th>계정 삭제 뒤</th></tr>
   <tr><td>Google 계정 연동(Firebase 계정), 이메일</td><td>바로 삭제</td></tr>
   <tr><td>클라우드 세이브와 직전 세이브</td><td>바로 삭제</td></tr>
   <tr><td>보스 처치 기록, 기기 기록(설치 ID·기기 모델명·앱 버전·접속 시각)</td><td>바로 삭제</td></tr>
-  <tr><td>이 휴대폰의 세이브</td><td>삭제할 때 고른 대로: 게스트로 남기거나 함께 삭제 (이메일 요청은 휴대폰에 남은 세이브를 지울 수 없으니 앱을 삭제해 주세요)</td></tr>
+  <tr><td>휴대폰에 남은 세이브</td><td>게임 안에서 삭제하면 고른 대로(게스트로 남기거나 함께 삭제). 이 페이지나 이메일로 삭제하면 다음 실행 때 휴대폰 안에 보관되고 처음부터 시작하며, 완전히 지우려면 앱을 삭제해 주세요</td></tr>
   <tr><td>이용 통계</td><td>계정과 연결되지 않아 따로 찾아 지울 수 없으며, 수집일로부터 14개월 뒤 자동 삭제</td></tr>
   <tr><td>광고 정보</td><td>Google의 보관 정책을 따름</td></tr>
 </table></div>
 <p>삭제한 계정의 진행은 되살릴 수 없습니다.</p>
 
-<h2>4. 계정은 두고 일부만 지우기</h2>
+<h2>5. 계정은 두고 일부만 지우기</h2>
 <p>계정을 없애지 않고도 아래 정보는 따로 멈추거나 지울 수 있습니다.</p>
 <ul>
   <li><strong>이 휴대폰의 세이브만 지우기</strong>: 메뉴 › 계정 › 로그아웃. 클라우드 세이브는 남아 다시 로그인하면 받을 수 있습니다.</li>
@@ -75,8 +123,169 @@
   <li><strong>맞춤형 광고 끄기</strong>: 휴대폰 설정 › Google › 광고에서 광고 ID를 재설정하거나 삭제합니다.</li>
 </ul>
 
-<h2>5. 문의</h2>
+<h2>6. 문의</h2>
 <p>삭제와 개인정보에 관한 문의는 <a href="mailto:wow91820@gmail.com">wow91820@gmail.com</a>(개인정보 보호책임자 김진수)로 보내 주세요. 자세한 내용은 <a href="../privacy/">비천기 개인정보처리방침</a>에 있습니다.</p>
 </main>
+
+<script type="module">
+// Account deletion from the web (비천기, Firebase project "bicheongi"). The player signs in with the Google
+// account linked in the game; this page then deletes exactly what the in-app 계정 삭제 deletes
+// (autoload/CloudSync.gd _delete_account_inner): users/<uid>/saves/main and main_prev, every
+// users/<uid>/devices and users/<uid>/bosses document, then the Firebase account. Firestore rules let only
+// the signed-in owner do this. The values below are public client settings, not secrets.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, deleteUser, signOut, getAdditionalUserInfo }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyAUDnzNGS88SDbv7xFS0RBsUIj4DJo-YDc",
+  authDomain: "bicheongi.firebaseapp.com",
+  projectId: "bicheongi",
+});
+const auth = getAuth(app);
+auth.languageCode = "ko";
+const FIRESTORE = "https://firestore.googleapis.com/v1/projects/bicheongi/databases/(default)/documents";
+
+const $ = (id) => document.getElementById(id);
+const show = (step) => {
+  for (const s of ["step-signin", "step-confirm", "step-done"]) $(s).hidden = s !== step;
+};
+const status = (text, kind = "") => {
+  $("status").textContent = text;
+  $("status").className = "status" + (kind ? " " + kind : "");
+};
+
+let user = null;
+let found = null;   // {paths: [...], save: bool, devices: n, bosses: n}
+let signedInAt = 0;
+// Firebase deletes an account only within a few minutes of its sign-in; past this the page asks again
+// BEFORE touching anything, so a late tap never leaves the data half deleted.
+const RECENT_MS = 4 * 60 * 1000;
+
+function provider() {
+  const p = new GoogleAuthProvider();
+  p.setCustomParameters({ prompt: "select_account" });
+  return p;
+}
+
+function explain(err) {
+  const code = err && err.code ? err.code : "";
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "로그인 창이 닫혔습니다. 다시 눌러 주세요.";
+  if (code === "auth/popup-blocked") return "브라우저가 로그인 창을 막았습니다. 팝업을 허용한 뒤 다시 눌러 주세요.";
+  if (code === "auth/unauthorized-domain") return "이 페이지 주소가 아직 로그인에 승인되지 않았습니다. 3번 이메일 요청을 이용해 주세요.";
+  if (code === "auth/network-request-failed") return "인터넷 연결을 확인한 뒤 다시 시도해 주세요.";
+  if (code === "auth/user-mismatch") return "처음 로그인한 계정과 다른 계정입니다. 같은 Google 계정을 골라 주세요.";
+  if (code === "auth/requires-recent-login") return "본인 확인 시간이 지났습니다. 계정 삭제를 한 번 더 눌러 주세요.";
+  return "문제가 생겼습니다 (" + (code || (err && err.message) || "알 수 없음") + "). 잠시 후 다시 시도하거나 3번 이메일 요청을 이용해 주세요.";
+}
+
+async function firestore(method, path, token) {
+  const url = path.startsWith("http") ? path : `${FIRESTORE}/${path}`;
+  const r = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` } });
+  if (method === "DELETE" && r.status === 404) return {};
+  if (!r.ok) throw { code: `firestore/${r.status}`, message: await r.text() };
+  return method === "GET" ? r.json() : {};
+}
+
+async function listNames(collection, token, mask) {
+  const names = [];
+  let page = "";
+  do {
+    const q = `pageSize=100&mask.fieldPaths=${mask}` + (page ? `&pageToken=${encodeURIComponent(page)}` : "");
+    const data = await firestore("GET", `${collection}?${q}`, token);
+    for (const d of data.documents || []) names.push(d.name.split("/documents/")[1]);
+    page = data.nextPageToken || "";
+  } while (page);
+  return names;
+}
+
+async function survey(u) {
+  const token = await u.getIdToken();
+  const uid = u.uid;
+  let save = false;
+  try {
+    await firestore("GET", `users/${uid}/saves/main?mask.fieldPaths=revision`, token);
+    save = true;
+  } catch (e) {
+    if (e.code !== "firestore/404") throw e;
+  }
+  const devices = await listNames(`users/${uid}/devices`, token, "model");
+  const bosses = await listNames(`users/${uid}/bosses`, token, "generation");
+  return { paths: [`users/${uid}/saves/main`, `users/${uid}/saves/main_prev`, ...devices, ...bosses], save, devices: devices.length, bosses: bosses.length };
+}
+
+async function signIn() {
+  status("로그인하는 중…");
+  $("btn-signin").disabled = true;
+  try {
+    const result = await signInWithPopup(auth, provider());
+    user = result.user;
+    signedInAt = Date.now();
+    if (getAdditionalUserInfo(result)?.isNewUser) {
+      // never linked to the game: the sign-in just made an empty login, so take it away again
+      await deleteUser(user).catch(() => signOut(auth));
+      user = null;
+      show("step-signin");
+      status("이 Google 계정은 게임과 연동된 적이 없어 지울 정보가 없습니다. 게임에 연동한 계정으로 다시 로그인해 주세요.", "error");
+      return;
+    }
+    status("이 계정의 정보를 확인하는 중…");
+    found = await survey(user);
+    $("who").textContent = user.email || "(이메일 없음)";
+    const what = $("what");
+    what.replaceChildren(...[
+      found.save ? "클라우드 세이브와 직전 세이브" : "클라우드 세이브 (지금은 없음)",
+      `기기 기록 ${found.devices}개`,
+      `보스 처치 기록 ${found.bosses}개`,
+      "Google 계정 연동(Firebase 계정)",
+    ].map((t) => Object.assign(document.createElement("li"), { textContent: t })));
+    $("chk-sure").checked = false;
+    $("btn-delete").disabled = true;
+    show("step-confirm");
+    status("");
+  } catch (e) {
+    show("step-signin");
+    status(explain(e), "error");
+  } finally {
+    $("btn-signin").disabled = false;
+  }
+}
+
+async function removeAccount() {
+  if (!user || !found) return;
+  $("btn-delete").disabled = true;
+  $("btn-other").disabled = true;
+  try {
+    if (Date.now() - signedInAt > RECENT_MS) {
+      status("본인 확인을 위해 같은 Google 계정으로 한 번 더 로그인해 주세요.");
+      user = (await reauthenticateWithPopup(user, provider())).user;
+      signedInAt = Date.now();
+    }
+    status("삭제하는 중… 창을 닫지 마세요.");
+    const token = await user.getIdToken(true);
+    for (const path of found.paths) await firestore("DELETE", path, token);
+    try {
+      await deleteUser(user);
+    } catch (e) {
+      if (e.code === "auth/requires-recent-login") signedInAt = 0;   // the next tap signs in again first
+      throw e;
+    }
+    user = null;
+    found = null;
+    show("step-done");
+    status("");
+  } catch (e) {
+    status(explain(e) + " 일부만 지워졌을 수 있으니 다시 시도해 주세요.", "error");
+    $("btn-delete").disabled = !$("chk-sure").checked;
+    $("btn-other").disabled = false;
+  }
+}
+
+$("btn-signin").addEventListener("click", signIn);
+$("chk-sure").addEventListener("change", () => { $("btn-delete").disabled = !$("chk-sure").checked; });
+$("btn-delete").addEventListener("click", removeAccount);
+// straight into the account picker (no await first, or the browser may block the login window)
+$("btn-other").addEventListener("click", () => { user = null; found = null; signIn(); });
+</script>
 </body>
 </html>
