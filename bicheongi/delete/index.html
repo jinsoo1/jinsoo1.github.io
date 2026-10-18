@@ -70,7 +70,7 @@
   </div>
 
   <div id="step-done" hidden>
-    <p class="status done" id="done-text">계정을 삭제했습니다. 클라우드 세이브, 기기 기록, 보스 처치 기록, Google 계정 연동이 모두 지워졌습니다.</p>
+    <p class="status done" id="done-text">계정을 삭제했습니다. 클라우드 세이브, 기기 기록, 보스 처치 기록, 우편, Google 계정 연동이 모두 지워졌습니다.</p>
   </div>
 
   <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -109,6 +109,7 @@
   <tr><td>Google 계정 연동(Firebase 계정), 이메일</td><td>바로 삭제</td></tr>
   <tr><td>클라우드 세이브와 직전 세이브</td><td>바로 삭제</td></tr>
   <tr><td>보스 처치 기록, 기기 기록(설치 ID·기기 모델명·앱 버전·접속 시각)</td><td>바로 삭제</td></tr>
+  <tr><td>운영자 우편과 받은 기록(받은 시각·받은 캐릭터 표시)</td><td>바로 삭제. 아직 기간이 남은 전체 우편의 받은 기록은 같은 우편을 두 번 받지 못하게 남았다가, 운영자가 정리할 때 지웁니다</td></tr>
   <tr><td>휴대폰에 남은 세이브</td><td>게임 안에서 삭제하면 고른 대로(게스트로 남기거나 함께 삭제). 이 페이지나 이메일로 삭제하면 다음 실행 때 휴대폰 안에 보관되고 처음부터 시작하며, 완전히 지우려면 앱을 삭제해 주세요</td></tr>
   <tr><td>이용 통계</td><td>계정과 연결되지 않아 따로 찾아 지울 수 없으며, 수집일로부터 14개월 뒤 자동 삭제</td></tr>
   <tr><td>광고 정보</td><td>Google의 보관 정책을 따름</td></tr>
@@ -156,7 +157,7 @@ const status = (text, kind = "") => {
 };
 
 let user = null;
-let found = null;   // {paths: [...], save: bool, devices: n, bosses: n}
+let found = null;   // {paths: [...], claims: Set, save: bool, devices: n, bosses: n, mail: n}
 let signedInAt = 0;
 // Firebase deletes an account only within a few minutes of its sign-in; past this the page asks again
 // BEFORE touching anything, so a late tap never leaves the data half deleted.
@@ -211,7 +212,11 @@ async function survey(u) {
   }
   const devices = await listNames(`users/${uid}/devices`, token, "model");
   const bosses = await listNames(`users/${uid}/bosses`, token, "generation");
-  return { paths: [`users/${uid}/saves/main`, `users/${uid}/saves/main_prev`, ...devices, ...bosses], save, devices: devices.length, bosses: bosses.length };
+  // the mailbox (admin_tool_v1 §11): personal mail and the record of everyone-mail received
+  const mail = await listNames(`users/${uid}/mail`, token, "claimed_at");
+  const claims = await listNames(`users/${uid}/mail_claims`, token, "claimed_at");
+  return { paths: [`users/${uid}/saves/main`, `users/${uid}/saves/main_prev`, ...devices, ...bosses, ...mail, ...claims],
+           claims: new Set(claims), save, devices: devices.length, bosses: bosses.length, mail: mail.length + claims.length };
 }
 
 async function signIn() {
@@ -237,6 +242,7 @@ async function signIn() {
       found.save ? "클라우드 세이브와 직전 세이브" : "클라우드 세이브 (지금은 없음)",
       `기기 기록 ${found.devices}개`,
       `보스 처치 기록 ${found.bosses}개`,
+      `우편과 받은 기록 ${found.mail}개`,
       "Google 계정 연동(Firebase 계정)",
     ].map((t) => Object.assign(document.createElement("li"), { textContent: t })));
     $("chk-sure").checked = false;
@@ -263,7 +269,14 @@ async function removeAccount() {
     }
     status("삭제하는 중… 창을 닫지 마세요.");
     const token = await user.getIdToken(true);
-    for (const path of found.paths) await firestore("DELETE", path, token);
+    for (const path of found.paths) {
+      try {
+        await firestore("DELETE", path, token);
+      } catch (e) {
+        // a received everyone-mail's record stays while that mail runs (no claiming twice); the operator clears it
+        if (!(e.code === "firestore/403" && found.claims.has(path))) throw e;
+      }
+    }
     try {
       await deleteUser(user);
     } catch (e) {
